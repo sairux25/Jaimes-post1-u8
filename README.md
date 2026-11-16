@@ -50,3 +50,15 @@ Para cadenas de longitud desconocida se adaptaría el bucle de post1e.asm cargan
 REPE CMPSB con CX fijo es apropiado en post1d.asm porque cad1, cad2 y cad3 son literales de 8 caracteres conocidos al ensamblar, así que CX=8 nunca pasa del terminador. Sin embargo no sirve en general, porque una cadena leída del teclado no tiene una longitud conocida de antemano.
 
 Captura: capturas/CP6_cx_fijo_cadena_corta.png
+
+
+# PARTE 2 — Aritmética de Precisión Múltiple y BCD
+## Checkpoint 1 — Suma de 32 bits con ADC
+Capturas: capturas/P2_CP1_compilacion.png y capturas/P2_CP1_ejecucion.png
+
+post2.asm suma A = 0001FFFFh y B = 00010001h guardando cada número en dos palabras de 16 bits. ADD suma primero las partes bajas, FFFFh + 0001h, que da 0000h con CF en 1, y luego ADC suma las partes altas más ese acarreo, 0001h + 0001h + 1 = 0003h. El programa compara AX con 0000h y DX con 0003h antes de imprimir, y al mostrar "Suma OK: 0003:0000" se confirma que el acarreo de la parte baja pasó a la parte alta.
+
+## Checkpoint 2 — Resta de 32 bits con SBB
+Capturas: capturas/P2_CP2_compilacion.png y capturas/P2_CP2_ejecucion.png
+
+Se extendió post2.asm con la resta 00030000h menos 00010001h, que se hace con SUB en las partes bajas y SBB en las altas. Como 0000h menos 0001h necesita un préstamo, SUB deja AX en FFFFh con CF en 1, y luego SBB resta ese préstamo junto con la parte alta, 0003h - 0001h - 1 = 0001h. Para la nueva salida se agregaron el mensaje de resta, su mensaje de error y el salto de línea. El programa ahora imprime "Suma OK: 0003:0000" y debajo "Resta OK: 0001:FFFF", que solo aparece si DX quedó en 0001h y AX en FFFFh.
