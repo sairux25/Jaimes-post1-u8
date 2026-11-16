@@ -62,3 +62,18 @@ post2.asm suma A = 0001FFFFh y B = 00010001h guardando cada número en dos palab
 Capturas: capturas/P2_CP2_compilacion.png y capturas/P2_CP2_ejecucion.png
 
 Se extendió post2.asm con la resta 00030000h menos 00010001h, que se hace con SUB en las partes bajas y SBB en las altas. Como 0000h menos 0001h necesita un préstamo, SUB deja AX en FFFFh con CF en 1, y luego SBB resta ese préstamo junto con la parte alta, 0003h - 0001h - 1 = 0001h. Para la nueva salida se agregaron el mensaje de resta, su mensaje de error y el salto de línea. El programa ahora imprime "Suma OK: 0003:0000" y debajo "Resta OK: 0001:FFFF", que solo aparece si DX quedó en 0001h y AX en FFFFh.
+
+## Checkpoint 3 — Suma BCD con DAA
+Capturas: capturas/P2_CP3_compilacion.png, capturas/P2_CP3_ejecucion.png, capturas/P2_CP3_sin_daa.png y capturas/P2_CP3_99_mas_01.png
+
+En la primera prueba post2b.com mostró "BCD suma: 85", pero no dejaba ver el acarreo que pide revisar la suma 99h + 01h. Por lo tanto se agregó una línea que guarda CF en CL justo después de DAA y se imprime al final como "CF=". Hecho esto, la suma 47h + 38h muestra "BCD suma: 85 CF=0". ADD deja AL en 7Fh y como el nibble bajo F es mayor que 9, DAA le suma 6 y lo corrige a 85h. Al quitar DAA de forma temporal la salida fue "7? CF=0", donde el "?" es la F sin ajustar, ya que la impresión le suma 30h y 0Fh + 30h da 3Fh. Además, al cambiar los operandos por 99h y 01h la salida fue "00 CF=1", porque DAA ajusta los dos nibbles de 9Ah y el acarreo pasa al siguiente byte BCD.
+
+## Checkpoint 4 — Resta BCD con DAS
+Capturas: capturas/P2_CP4_compilacion.png y capturas/P2_CP4_ejecucion.png
+
+Las dos restas se agregaron a post2b.asm, con sus mensajes y un mensaje de error. En 73h - 28h, SUB deja AL en 4Bh y como el nibble bajo B es mayor que 9, DAS le resta 6 y lo corrige a 45h. En 20h - 01h, SUB deja 1Fh y DAS corrige el nibble bajo F a 19h, sin préstamo hacia el siguiente byte. Cada caso compara AL con el valor esperado antes de imprimir, y la salida muestra "DAS OK: 45" y "DAS OK: 19" debajo de la suma del checkpoint anterior.
+
+## Checkpoint 5 — Calculadora con MUL/DIV
+Capturas: capturas/P2_CP5_compilacion.png y capturas/P2_CP5_ejecucion.png
+
+En la primera prueba post2c.asm no compiló y NASM marcó un error en la línea del mensaje del operador. Esto pasó porque la variable se llamaba pOp y NASM no distingue mayúsculas en las instrucciones, así que la leyó como POP. Por lo tanto se renombró la variable a pOper. Hecho esto, la calculadora compiló y dio "Resultado: 56" para 7×8, "Resultado: 3" para 9/3 y "Division por cero." al dividir 5 entre 0. Cada dígito se lee con INT 21h/AH=01h y se le resta 30h para pasarlo de ASCII a binario, MUL CL deja el producto en AX y DIV CL deja el cociente en AL y el resto en AH. Luego imprimirAX divide AX entre 10 varias veces, guarda cada resto en la pila y los saca en orden inverso sumándoles 30h para imprimir el número en decimal.
