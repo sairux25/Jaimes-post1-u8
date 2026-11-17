@@ -77,3 +77,26 @@ Las dos restas se agregaron a post2b.asm, con sus mensajes y un mensaje de error
 Capturas: capturas/P2_CP5_compilacion.png y capturas/P2_CP5_ejecucion.png
 
 En la primera prueba post2c.asm no compiló y NASM marcó un error en la línea del mensaje del operador. Esto pasó porque la variable se llamaba pOp y NASM no distingue mayúsculas en las instrucciones, así que la leyó como POP. Por lo tanto se renombró la variable a pOper. Hecho esto, la calculadora compiló y dio "Resultado: 56" para 7×8, "Resultado: 3" para 9/3 y "Division por cero." al dividir 5 entre 0. Cada dígito se lee con INT 21h/AH=01h y se le resta 30h para pasarlo de ASCII a binario, MUL CL deja el producto en AX y DIV CL deja el cociente en AL y el resto en AH. Luego imprimirAX divide AX entre 10 varias veces, guarda cada resto en la pila y los saca en orden inverso sumándoles 30h para imprimir el número en decimal.
+
+## Checkpoint 6 — Suma y resta BCD desempaquetada con AAA/AAS
+Capturas: capturas/P2_CP6_compilacion.png, capturas/P2_CP6_ejecucion.png y capturas/P2_CP6_sin_ajuste.png
+
+En la primera prueba post2d.com mostró "AAA: 7 + 8 = :5" aunque la resta sí salió bien. Esto pasó porque AH seguía en 09h por la impresión del mensaje y AAA le sumó 1, quedando en 0Ah, que al sumarle 30h se imprime como ":". Por lo tanto se agregó XOR AH, AH antes de cargar el 7 para que la decena empiece en 0. Hecho esto, la salida muestra "AAA: 7 + 8 = 15" y "AAS: 13 - 8 = 5". AAA ve que el nibble bajo de 0Fh es mayor que 9, deja en AL solo el 5 con el nibble alto en 0 y suma 1 a AH, que es la decena. AAS hace lo contrario con FBh, deja AL en 05h y marca el préstamo de la decena con CF. Al quitar las dos instrucciones de forma temporal la salida fue "0?" y "+", lo que confirma que sin ajuste 0Fh y FBh no son dígitos desempaquetados válidos.
+
+## Decisión Técnica — DAA/DAS frente a AAA/AAS según el formato del dato
+Usar AAA en lugar de DAA sobre un byte empaquetado como 47h daría un resultado incorrecto porque AAA solo ajusta el nibble bajo de AL y pone el nibble alto en cero, así que el 4 de las decenas se perdería. En cambio DAA ajusta los dos nibbles, como se vio en post2b.com, donde 47h + 38h dio 7Fh y DAA lo corrigió a 85.
+
+Para la calculadora la instrucción correcta sería AAA, porque al leer un dígito con INT 21h/AH=01h y restarle 30h queda un solo dígito por byte con el nibble alto en 0. AAA deja las unidades en AL y lleva la decena a AH, y así post2d.com mostró 15 para 7 + 8.
+
+Aplicar DAA sobre 0Fh sería un error porque DAA toma el nibble alto en 0 como si ya fuera un dígito decimal válido y deja 15h dentro de AL, con la decena en el nibble alto en lugar de AH. Por lo tanto, al imprimir AL como un dígito desempaquetado el resultado saldría mal, y la decena nunca llegaría a AH.
+
+Capturas: capturas/P2_CP3_ejecucion.png y capturas/P2_CP6_ejecucion.png
+
+## Decisión Técnica — ADC de precisión fija frente a una cadena de ADC en bucle
+Para generalizar la suma de post2.asm a N palabras se guardan los dos números en memoria desde la palabra de menor peso, se apunta a cada uno con SI y DI y se carga N en CX. En cada vuelta se suma una palabra con ADC a la del otro número, se guarda el resultado, se avanzan los punteros con INC, que no cambia CF, y LOOP repite.
+
+La primera palabra se suma con ADD porque antes de ella no hay ningún acarreo que propagar. Por eso en el bucle se usa CLC antes de entrar, que deja CF en 0 y equivale a empezar con ADD. Las siguientes necesitan ADC para sumar el acarreo de la anterior, como en post2.com, donde FFFFh + 0001h dejó CF en 1 y ADC lo llevó a la parte alta para dar 0003:0000.
+
+El bucle es más mantenible porque sirve para 48, 64 o más bits con solo cambiar CX, como un tipo bignum. Sin embargo es más lento, porque cada palabra paga la carga, el guardado, los incrementos y el LOOP, frente a las dos instrucciones fijas de post2.asm, igual que el bucle LODSB/STOSB frente a REP MOVSB en la Parte 1.
+
+Captura: capturas/P2_CP2_ejecucion.png
